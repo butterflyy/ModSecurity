@@ -341,6 +341,7 @@ class Transaction : public TransactionAnchoredVariables {
     int addResponseHeader(const unsigned char *key, const unsigned char *value);
     int addResponseHeader(const unsigned char *key, size_t len_key,
         const unsigned char *value, size_t len_value);
+    int addContainer(const std::string& id);
 
     int processResponseBody();
     int appendResponseBody(const unsigned char *body, size_t size);
@@ -383,6 +384,7 @@ class Transaction : public TransactionAnchoredVariables {
      */
     clock_t m_creationTimeStamp;
 
+    std::string m_containerId;
     /**
      * Holds the client IP address.
      */
