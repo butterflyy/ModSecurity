@@ -1205,6 +1205,11 @@ int Transaction::addResponseHeader(const unsigned char *key, size_t key_n,
     return this->addResponseHeader(keys, values);
 }
 
+int Transaction::addContainer(const std::string& id){
+    m_containerId = id;
+    return 1;
+}
+
 
 /**
  * @name    processResponseBody
@@ -1684,6 +1689,7 @@ std::string Transaction::toJSON(int parts) {
 
     yajl_gen_map_open(g);
     /* Part: A (header mandatory) */
+    LOGFY_ADD("container_id", this->m_containerId.c_str());
     LOGFY_ADD("client_ip", this->m_clientIpAddress->c_str());
     LOGFY_ADD("time_stamp", ts.c_str());
     LOGFY_ADD("server_id", uniqueId.c_str());
