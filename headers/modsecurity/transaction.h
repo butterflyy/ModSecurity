@@ -326,6 +326,18 @@ class Transaction : public TransactionAnchoredVariables {
       XMLRequestBody
     };
 
+    struct ContainerInfo{
+        std::string container_id;
+        std::string image_id;
+        std::string container_name;
+        unsigned long host_pid;
+        std::string state;
+        std::string image_name;
+        std::string full_container_name;
+        std::string ns_name;
+        std::string pod_name;
+    };
+
     int processRequestHeaders();
     int addRequestHeader(const std::string& key, const std::string& value);
     int addRequestHeader(const unsigned char *key, const unsigned char *value);
@@ -341,7 +353,7 @@ class Transaction : public TransactionAnchoredVariables {
     int addResponseHeader(const unsigned char *key, const unsigned char *value);
     int addResponseHeader(const unsigned char *key, size_t len_key,
         const unsigned char *value, size_t len_value);
-    int addContainer(const std::string& id);
+    int addContainer(const ContainerInfo& info);
 
     int processResponseBody();
     int appendResponseBody(const unsigned char *body, size_t size);
@@ -384,7 +396,7 @@ class Transaction : public TransactionAnchoredVariables {
      */
     clock_t m_creationTimeStamp;
 
-    std::string m_containerId;
+    ContainerInfo m_containerInfo;
     /**
      * Holds the client IP address.
      */

@@ -1102,8 +1102,8 @@ int Transaction::addResponseHeader(const unsigned char *key, size_t key_n,
     return this->addResponseHeader(keys, values);
 }
 
-int Transaction::addContainer(const std::string& id){
-    m_containerId = id;
+int Transaction::addContainer(const ContainerInfo& info){
+    m_containerInfo = info;
     return 1;
 }
 
@@ -1584,14 +1584,32 @@ std::string Transaction::toJSON(int parts) {
 
     yajl_gen_map_open(g);
     /* Part: A (header mandatory) */
-    LOGFY_ADD("container_id", this->m_containerId.c_str());
     LOGFY_ADD("client_ip", this->m_clientIpAddress->c_str());
-    LOGFY_ADD("time_stamp", ts.c_str());
+    LOGFY_ADD_NUM("time_stamp", m_timeStamp);
+    LOGFY_ADD("time_stamp_human", ts.c_str());
     LOGFY_ADD("server_id", uniqueId.c_str());
     LOGFY_ADD_NUM("client_port", m_clientPort);
     LOGFY_ADD("host_ip", m_serverIpAddress.c_str());
     LOGFY_ADD_NUM("host_port", m_serverPort);
     LOGFY_ADD("unique_id", this->m_id.c_str());
+
+    /* container info */
+    yajl_gen_string(g, reinterpret_cast<const unsigned char*>("container"),
+        strlen("container"));
+    yajl_gen_map_open(g);
+
+    LOGFY_ADD("container_id", m_containerInfo.container_id.c_str());
+    LOGFY_ADD("image_id", m_containerInfo.image_id.c_str());
+    LOGFY_ADD("container_name", m_containerInfo.container_name.c_str());
+    LOGFY_ADD_NUM("host_pid", m_containerInfo.host_pid);
+    LOGFY_ADD("state", m_containerInfo.state.c_str());
+    LOGFY_ADD("image_name", m_containerInfo.image_name.c_str());
+    LOGFY_ADD("full_container_name", m_containerInfo.full_container_name.c_str());
+    LOGFY_ADD("ns_name", m_containerInfo.ns_name.c_str());
+    LOGFY_ADD("pod_name", m_containerInfo.pod_name.c_str());
+
+    /* end: container info */
+    yajl_gen_map_close(g);
 
     /* request */
     yajl_gen_string(g, reinterpret_cast<const unsigned char*>("request"),
