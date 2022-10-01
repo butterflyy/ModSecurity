@@ -394,6 +394,8 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
     int addResponseHeader(const unsigned char *key, const unsigned char *value);
     int addResponseHeader(const unsigned char *key, size_t len_key,
         const unsigned char *value, size_t len_value);
+    
+    int setIsRequest(bool request);
     int addContainer(const ContainerInfo& info);
 
     int processResponseBody();
@@ -437,6 +439,7 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
      */
     clock_t m_creationTimeStamp;
 
+    bool m_request;
     ContainerInfo m_containerInfo;
     /**
      * Holds the client IP address.

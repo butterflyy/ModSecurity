@@ -1205,6 +1205,11 @@ int Transaction::addResponseHeader(const unsigned char *key, size_t key_n,
     return this->addResponseHeader(keys, values);
 }
 
+int Transaction::setIsRequest(bool request){
+    m_request = request;
+    return 1;
+}
+
 int Transaction::addContainer(const ContainerInfo& info){
     m_containerInfo = info;
     return 1;
@@ -1716,71 +1721,77 @@ std::string Transaction::toJSON(int parts) {
     /* end: container info */
     yajl_gen_map_close(g);
 
-    /* request */
-    yajl_gen_string(g, reinterpret_cast<const unsigned char*>("request"),
-        strlen("request"));
-    yajl_gen_map_open(g);
-
-    LOGFY_ADD("method",
-        utils::string::dash_if_empty(
-            m_variableRequestMethod.evaluate()).c_str());
-
-    LOGFY_ADD_INT("http_version", m_httpVersion.c_str());
-    LOGFY_ADD("uri", this->m_uri.c_str());
-
-    if (parts & audit_log::AuditLog::CAuditLogPart) {
-        // FIXME: check for the binary content size.
-        LOGFY_ADD("body", this->m_requestBody.str().c_str());
-    }
-
-    /* request headers */
-    if (parts & audit_log::AuditLog::BAuditLogPart) {
-        std::vector<const VariableValue *> l;
-        yajl_gen_string(g, reinterpret_cast<const unsigned char*>("headers"),
-            strlen("headers"));
+    if(this->m_request){
+        /* request */
+        yajl_gen_string(g, reinterpret_cast<const unsigned char*>("request"),
+            strlen("request"));
         yajl_gen_map_open(g);
 
-        m_variableRequestHeaders.resolve(&l);
-        for (auto &h : l) {
-            LOGFY_ADD(h->getKey().c_str(), h->getValue().c_str());
-            delete h;
+        LOGFY_ADD("method",
+            utils::string::dash_if_empty(
+                m_variableRequestMethod.evaluate()).c_str());
+
+        LOGFY_ADD_INT("http_version", m_httpVersion.c_str());
+        LOGFY_ADD("uri", this->m_uri.c_str());
+
+        if (parts & audit_log::AuditLog::CAuditLogPart) {
+            // FIXME: check for the binary content size.
+            LOGFY_ADD("body", this->m_requestBody.str().c_str());
         }
 
-        /* end: request headers */
+        /* request headers */
+        if (parts & audit_log::AuditLog::BAuditLogPart) {
+            std::vector<const VariableValue *> l;
+            yajl_gen_string(g, reinterpret_cast<const unsigned char*>("headers"),
+                strlen("headers"));
+            yajl_gen_map_open(g);
+
+            m_variableRequestHeaders.resolve(&l);
+            for (auto &h : l) {
+                LOGFY_ADD(h->getKey().c_str(), h->getValue().c_str());
+                delete h;
+            }
+
+            /* end: request headers */
+            yajl_gen_map_close(g);
+        }
+
+        /* end: request */
+        yajl_gen_map_close(g);
+    }
+    else{
+        /* response */
+        yajl_gen_string(g, reinterpret_cast<const unsigned char*>("response"),
+            strlen("response"));
+        yajl_gen_map_open(g);
+
+        if (parts & audit_log::AuditLog::EAuditLogPart) {
+            LOGFY_ADD("body", this->m_responseBody.str().c_str());
+        }
+        LOGFY_ADD_NUM("http_code", m_httpCodeReturned);
+
+        /* response headers */
+        if (parts & audit_log::AuditLog::FAuditLogPart) {
+            std::vector<const VariableValue *> l;
+            yajl_gen_string(g, reinterpret_cast<const unsigned char*>("headers"),
+                strlen("headers"));
+            yajl_gen_map_open(g);
+
+            m_variableResponseHeaders.resolve(&l);
+            for (auto &h : l) {
+                LOGFY_ADD(h->getKey().c_str(), h->getValue().c_str());
+                delete h;
+            }
+
+            /* end: response headers */
+            yajl_gen_map_close(g);
+        }
+        /* end: response */
         yajl_gen_map_close(g);
     }
 
-    /* end: request */
-    yajl_gen_map_close(g);
 
-    /* response */
-    yajl_gen_string(g, reinterpret_cast<const unsigned char*>("response"),
-        strlen("response"));
-    yajl_gen_map_open(g);
 
-    if (parts & audit_log::AuditLog::EAuditLogPart) {
-        LOGFY_ADD("body", this->m_responseBody.str().c_str());
-    }
-    LOGFY_ADD_NUM("http_code", m_httpCodeReturned);
-
-    /* response headers */
-    if (parts & audit_log::AuditLog::FAuditLogPart) {
-        std::vector<const VariableValue *> l;
-        yajl_gen_string(g, reinterpret_cast<const unsigned char*>("headers"),
-            strlen("headers"));
-        yajl_gen_map_open(g);
-
-        m_variableResponseHeaders.resolve(&l);
-        for (auto &h : l) {
-            LOGFY_ADD(h->getKey().c_str(), h->getValue().c_str());
-            delete h;
-        }
-
-        /* end: response headers */
-        yajl_gen_map_close(g);
-    }
-    /* end: response */
-    yajl_gen_map_close(g);
 
     /* producer */
     if (parts & audit_log::AuditLog::HAuditLogPart) {
