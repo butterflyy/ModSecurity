@@ -1584,7 +1584,7 @@ std::string Transaction::toJSON(int parts) {
 
     yajl_gen_map_open(g);
     /* Part: A (header mandatory) */
-    LOGFY_ADD("client_ip", this->m_clientIpAddress->c_str());
+    LOGFY_ADD("client_ip", m_clientIpAddress.c_str());
     LOGFY_ADD_NUM("time_stamp", m_timeStamp);
     LOGFY_ADD("time_stamp_human", ts.c_str());
     LOGFY_ADD("server_id", uniqueId.c_str());
