@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -33,10 +33,9 @@ namespace actions {
 namespace transformations {
 
 
-std::string RemoveNulls::evaluate(const std::string &val,
+std::string RemoveNulls::evaluate(std::string value,
     Transaction *transaction) {
     int64_t i;
-    std::string value(val);
 
     i = 0;
     while (i < value.size()) {

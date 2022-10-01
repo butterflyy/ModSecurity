@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -42,7 +42,8 @@ namespace writer {
 class Writer {
  public:
     explicit Writer(AuditLog *audit)
-        : m_audit(audit) { }
+        : m_audit(audit),
+        m_refereceCount(1) { }
 
     virtual ~Writer() { }
 
@@ -50,10 +51,25 @@ class Writer {
     virtual bool write(Transaction *transaction, int parts,
         std::string *error) = 0;
 
-    static void generateBoundary(std::string *boundary);
+    void generateBoundary(std::string *boundary);
+
+    void refCountIncrease() {
+        m_refereceCount++;
+    }
+
+
+    bool refCountDecreaseAndCheck() {
+        m_refereceCount--;
+        if (m_refereceCount == 0) {
+            delete this;
+            return true;
+        }
+        return false;
+    }
 
  protected:
     AuditLog *m_audit;
+    int m_refereceCount;
 };
 
 

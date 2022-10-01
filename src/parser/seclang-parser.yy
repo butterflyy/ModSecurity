@@ -17,7 +17,6 @@ class Driver;
 }
 }
 
-#include "modsecurity/rule_unconditional.h"
 #include "src/rule_script.h"
 
 #include "src/actions/accuracy.h"
@@ -25,7 +24,6 @@ class Driver;
 #include "src/actions/block.h"
 #include "src/actions/capture.h"
 #include "src/actions/chain.h"
-#include "src/actions/ctl/audit_engine.h"
 #include "src/actions/ctl/audit_log_parts.h"
 #include "src/actions/ctl/request_body_access.h"
 #include "src/actions/ctl/rule_engine.h"
@@ -63,12 +61,12 @@ class Driver;
 #include "src/actions/skip_after.h"
 #include "src/actions/skip.h"
 #include "src/actions/tag.h"
-#include "src/actions/ver.h"
-#include "src/actions/xmlns.h"
-
 #include "src/actions/transformations/none.h"
 #include "src/actions/transformations/transformation.h"
 #include "src/actions/transformations/url_decode_uni.h"
+#include "src/actions/ver.h"
+#include "src/actions/xmlns.h"
+
 #include "src/actions/transformations/hex_encode.h"
 #include "src/actions/transformations/parity_even_7bit.h"
 #include "src/actions/transformations/utf8_to_unicode.h"
@@ -133,7 +131,6 @@ class Driver;
 #include "src/operators/rbl.h"
 #include "src/operators/rsub.h"
 #include "src/operators/rx.h"
-#include "src/operators/rx_global.h"
 #include "src/operators/str_eq.h"
 #include "src/operators/str_match.h"
 #include "src/operators/unconditional_match.h"
@@ -152,7 +149,7 @@ class Driver;
 
 #include "modsecurity/audit_log.h"
 #include "modsecurity/modsecurity.h"
-#include "modsecurity/rules_set_properties.h"
+#include "modsecurity/rules_properties.h"
 #include "modsecurity/rule.h"
 #include "src/operators/operator.h"
 #include "src/utils/geo_lookup.h"
@@ -217,7 +214,6 @@ class Driver;
 #include "src/variables/request_body_length.h"
 #include "src/variables/request_cookies.h"
 #include "src/variables/request_cookies_names.h"
-#include "src/variables/multipart_part_headers.h"
 #include "src/variables/request_file_name.h"
 #include "src/variables/request_headers.h"
 #include "src/variables/request_headers_names.h"
@@ -260,6 +256,7 @@ class Driver;
 #include "src/variables/global.h"
 #include "src/variables/session.h"
 #include "src/variables/status.h"
+
 
 using namespace modsecurity;
 using namespace modsecurity::variables;
@@ -353,7 +350,6 @@ using namespace modsecurity::operators;
   VARIABLE_RESPONSE_HEADERS
   VARIABLE_GEO
   VARIABLE_REQUEST_COOKIES_NAMES
-  VARIABLE_MULTIPART_PART_HEADERS
   VARIABLE_ARGS_COMBINED_SIZE
   VARIABLE_ARGS_GET_NAMES
   VARIABLE_RULE
@@ -459,7 +455,6 @@ using namespace modsecurity::operators;
   OPERATOR_RSUB                                "OPERATOR_RSUB"
   OPERATOR_RX_CONTENT_ONLY                     "Operator RX (content only)"
   OPERATOR_RX                                  "OPERATOR_RX"
-  OPERATOR_RX_GLOBAL                           "OPERATOR_RX_GLOBAL"
   OPERATOR_STR_EQ                              "OPERATOR_STR_EQ"
   OPERATOR_STR_MATCH                           "OPERATOR_STR_MATCH"
   OPERATOR_UNCONDITIONAL_MATCH                 "OPERATOR_UNCONDITIONAL_MATCH"
@@ -606,8 +601,6 @@ using namespace modsecurity::operators;
   CONFIG_SEC_CONN_R_STATE_LIMIT                "CONFIG_SEC_CONN_R_STATE_LIMIT"
   CONFIG_SEC_CONN_W_STATE_LIMIT                "CONFIG_SEC_CONN_W_STATE_LIMIT"
   CONFIG_SEC_SENSOR_ID                         "CONFIG_SEC_SENSOR_ID"
-  CONFIG_DIR_ARGS_LIMIT                        "CONFIG_DIR_ARGS_LIMIT"
-  CONFIG_DIR_REQ_BODY_JSON_DEPTH_LIMIT         "CONFIG_DIR_REQ_BODY_JSON_DEPTH_LIMIT"
   CONFIG_DIR_REQ_BODY                          "CONFIG_DIR_REQ_BODY"
   CONFIG_DIR_REQ_BODY_IN_MEMORY_LIMIT          "CONFIG_DIR_REQ_BODY_IN_MEMORY_LIMIT"
   CONFIG_DIR_REQ_BODY_LIMIT                    "CONFIG_DIR_REQ_BODY_LIMIT"
@@ -807,11 +800,11 @@ audit_log:
     /* Upload */
     | CONFIG_UPDLOAD_KEEP_FILES CONFIG_VALUE_ON
       {
-        driver.m_uploadKeepFiles = modsecurity::RulesSetProperties::TrueConfigBoolean;
+        driver.m_uploadKeepFiles = modsecurity::RulesProperties::TrueConfigBoolean;
       }
     | CONFIG_UPDLOAD_KEEP_FILES CONFIG_VALUE_OFF
       {
-        driver.m_uploadKeepFiles = modsecurity::RulesSetProperties::FalseConfigBoolean;
+        driver.m_uploadKeepFiles = modsecurity::RulesProperties::FalseConfigBoolean;
       }
     | CONFIG_UPDLOAD_KEEP_FILES CONFIG_VALUE_RELEVANT_ONLY
       {
@@ -835,11 +828,11 @@ audit_log:
       }
     | CONFIG_UPDLOAD_SAVE_TMP_FILES CONFIG_VALUE_ON
       {
-        driver.m_tmpSaveUploadedFiles = modsecurity::RulesSetProperties::TrueConfigBoolean;
+        driver.m_tmpSaveUploadedFiles = modsecurity::RulesProperties::TrueConfigBoolean;
       }
     | CONFIG_UPDLOAD_SAVE_TMP_FILES CONFIG_VALUE_OFF
       {
-        driver.m_tmpSaveUploadedFiles = modsecurity::RulesSetProperties::FalseConfigBoolean;
+        driver.m_tmpSaveUploadedFiles = modsecurity::RulesProperties::FalseConfigBoolean;
       }
     ;
 
@@ -1043,10 +1036,6 @@ op_before_init:
       {
         OPERATOR_CONTAINER($$, new operators::Rx(std::move($2)));
       }
-    | OPERATOR_RX_GLOBAL run_time_string
-      {
-        OPERATOR_CONTAINER($$, new operators::RxGlobal(std::move($2)));
-      }
     | OPERATOR_STR_EQ run_time_string
       {
         OPERATOR_CONTAINER($$, new operators::StrEq(std::move($2)));
@@ -1077,13 +1066,8 @@ expression:
     | DIRECTIVE variables op actions
       {
         std::vector<actions::Action *> *a = new std::vector<actions::Action *>();
-        std::vector<actions::transformations::Transformation *> *t = new std::vector<actions::transformations::Transformation *>();
         for (auto &i : *$4.get()) {
-            if (dynamic_cast<actions::transformations::Transformation *>(i.get())) {
-              t->push_back(dynamic_cast<actions::transformations::Transformation *>(i.release()));
-            } else {
-              a->push_back(i.release());
-            }
+            a->push_back(i.release());
         }
         variables::Variables *v = new variables::Variables();
         for (auto &i : *$2.get()) {
@@ -1091,16 +1075,16 @@ expression:
         }
 
         Operator *op = $3.release();
-        std::unique_ptr<RuleWithOperator> rule(new RuleWithOperator(
+        Rule *rule = new Rule(
             /* op */ op,
             /* variables */ v,
             /* actions */ a,
-            /* transformations */ t,
-            /* file name */ std::unique_ptr<std::string>(new std::string(*@1.end.filename)),
+            /* file name */ *@1.end.filename,
             /* line number */ @1.end.line
-            ));
+            );
 
-        if (driver.addSecRule(std::move(rule)) == false) {
+        if (driver.addSecRule(rule) == false) {
+            delete rule;
             YYERROR;
         }
       }
@@ -1111,62 +1095,54 @@ expression:
             v->push_back(i.release());
         }
 
-        std::unique_ptr<RuleWithOperator> rule(new RuleWithOperator(
+        Rule *rule = new Rule(
             /* op */ $3.release(),
             /* variables */ v,
             /* actions */ NULL,
-            /* transformations */ NULL,
-            /* file name */ std::unique_ptr<std::string>(new std::string(*@1.end.filename)),
+            /* file name */ *@1.end.filename,
             /* line number */ @1.end.line
-            ));
-        if (driver.addSecRule(std::move(rule)) == false) {
+            );
+        if (driver.addSecRule(rule) == false) {
+            delete rule;
             YYERROR;
         }
       }
     | CONFIG_DIR_SEC_ACTION actions
       {
         std::vector<actions::Action *> *a = new std::vector<actions::Action *>();
-        std::vector<actions::transformations::Transformation *> *t = new std::vector<actions::transformations::Transformation *>();
         for (auto &i : *$2.get()) {
-            if (dynamic_cast<actions::transformations::Transformation *>(i.get())) {
-              t->push_back(dynamic_cast<actions::transformations::Transformation *>(i.release()));
-            } else {
-              a->push_back(i.release());
-            }
+            a->push_back(i.release());
         }
-        std::unique_ptr<RuleUnconditional> rule(new RuleUnconditional(
+        Rule *rule = new Rule(
+            /* op */ NULL,
+            /* variables */ NULL,
             /* actions */ a,
-            /* transformations */ t,
-            /* file name */ std::unique_ptr<std::string>(new std::string(*@1.end.filename)),
+            /* file name */ *@1.end.filename,
             /* line number */ @1.end.line
-            ));
-        driver.addSecAction(std::move(rule));
+            );
+        driver.addSecAction(rule);
       }
     | DIRECTIVE_SECRULESCRIPT actions
       {
         std::string err;
         std::vector<actions::Action *> *a = new std::vector<actions::Action *>();
-        std::vector<actions::transformations::Transformation *> *t = new std::vector<actions::transformations::Transformation *>();
         for (auto &i : *$2.get()) {
-            if (dynamic_cast<actions::transformations::Transformation *>(i.get())) {
-              t->push_back(dynamic_cast<actions::transformations::Transformation *>(i.release()));
-            } else {
-              a->push_back(i.release());
-            }
+            a->push_back(i.release());
         }
-        std::unique_ptr<RuleScript> r(new RuleScript(
+        RuleScript *r = new RuleScript(
             /* path to script */ $1,
             /* actions */ a,
-            /* transformations */ t,
-            /* file name */ std::unique_ptr<std::string>(new std::string(*@1.end.filename)),
+            /* file name */ *@1.end.filename,
             /* line number */ @1.end.line
-            ));
+            );
 
         if (r->init(&err) == false) {
             driver.error(@0, "Failed to load script: " + err);
+            delete r;
             YYERROR;
         }
-        if (driver.addSecRuleScript(std::move(r)) == false) {
+        if (driver.addSecRuleScript(r) == false) {
+            delete r;
             YYERROR;
         }
       }
@@ -1191,14 +1167,14 @@ expression:
                 delete phase;
             } else if (a->action_kind == actions::Action::RunTimeOnlyIfMatchKind ||
                 a->action_kind == actions::Action::RunTimeBeforeMatchAttemptKind) {
-                                actions::transformations::None *none = dynamic_cast<actions::transformations::None *>(a);
+                actions::transformations::None *none = dynamic_cast<actions::transformations::None *>(a);
                 if (none != NULL) {
                     driver.error(@0, "The transformation none is not suitable to be part of the SecDefaultActions");
                     YYERROR;
                 }
                 checkedActions.push_back(a);
             } else {
-                driver.error(@0, "The action '" + *a->m_name.get() + "' is not suitable to be part of the SecDefaultActions");
+                driver.error(@0, "The action '" + a->m_name + "' is not suitable to be part of the SecDefaultActions");
                 YYERROR;
             }
         }
@@ -1221,46 +1197,42 @@ expression:
         }
 
         for (actions::Action *a : checkedActions) {
-            driver.m_defaultActions[definedPhase].push_back(
-                std::unique_ptr<actions::Action>(a));
+            driver.m_defaultActions[definedPhase].push_back(a);
         }
 
         delete actions;
       }
     | CONFIG_DIR_SEC_MARKER
       {
-        driver.addSecMarker(modsecurity::utils::string::removeBracketsIfNeeded($1),
-            /* file name */ std::unique_ptr<std::string>(new std::string(*@1.end.filename)),
-            /* line number */ @1.end.line
-        );
+        driver.addSecMarker(modsecurity::utils::string::removeBracketsIfNeeded($1));
       }
     | CONFIG_DIR_RULE_ENG CONFIG_VALUE_OFF
       {
-        driver.m_secRuleEngine = modsecurity::RulesSet::DisabledRuleEngine;
+        driver.m_secRuleEngine = modsecurity::Rules::DisabledRuleEngine;
       }
     | CONFIG_DIR_RULE_ENG CONFIG_VALUE_ON
       {
-        driver.m_secRuleEngine = modsecurity::RulesSet::EnabledRuleEngine;
+        driver.m_secRuleEngine = modsecurity::Rules::EnabledRuleEngine;
       }
     | CONFIG_DIR_RULE_ENG CONFIG_VALUE_DETC
       {
-        driver.m_secRuleEngine = modsecurity::RulesSet::DetectionOnlyRuleEngine;
+        driver.m_secRuleEngine = modsecurity::Rules::DetectionOnlyRuleEngine;
       }
     | CONFIG_DIR_REQ_BODY CONFIG_VALUE_ON
       {
-        driver.m_secRequestBodyAccess = modsecurity::RulesSetProperties::TrueConfigBoolean;
+        driver.m_secRequestBodyAccess = modsecurity::RulesProperties::TrueConfigBoolean;
       }
     | CONFIG_DIR_REQ_BODY CONFIG_VALUE_OFF
       {
-        driver.m_secRequestBodyAccess = modsecurity::RulesSetProperties::FalseConfigBoolean;
+        driver.m_secRequestBodyAccess = modsecurity::RulesProperties::FalseConfigBoolean;
       }
     | CONFIG_DIR_RES_BODY CONFIG_VALUE_ON
       {
-        driver.m_secResponseBodyAccess = modsecurity::RulesSetProperties::TrueConfigBoolean;
+        driver.m_secResponseBodyAccess = modsecurity::RulesProperties::TrueConfigBoolean;
       }
     | CONFIG_DIR_RES_BODY CONFIG_VALUE_OFF
       {
-        driver.m_secResponseBodyAccess = modsecurity::RulesSetProperties::FalseConfigBoolean;
+        driver.m_secResponseBodyAccess = modsecurity::RulesProperties::FalseConfigBoolean;
       }
     | CONFIG_SEC_ARGUMENT_SEPARATOR
       {
@@ -1581,16 +1553,6 @@ expression:
         YYERROR;
 #endif  // WITH_GEOIP
       }
-    | CONFIG_DIR_ARGS_LIMIT
-      {
-        driver.m_argumentsLimit.m_set = true;
-        driver.m_argumentsLimit.m_value = atoi($1.c_str());
-      }
-    | CONFIG_DIR_REQ_BODY_JSON_DEPTH_LIMIT
-      {
-        driver.m_requestBodyJsonDepthLimit.m_set = true;
-        driver.m_requestBodyJsonDepthLimit.m_value = atoi($1.c_str());
-      }
     /* Body limits */
     | CONFIG_DIR_REQ_BODY_LIMIT
       {
@@ -1618,27 +1580,27 @@ expression:
       }
     | CONFIG_DIR_REQ_BODY_LIMIT_ACTION CONFIG_VALUE_PROCESS_PARTIAL
       {
-        driver.m_requestBodyLimitAction = modsecurity::RulesSet::BodyLimitAction::ProcessPartialBodyLimitAction;
+        driver.m_requestBodyLimitAction = modsecurity::Rules::BodyLimitAction::ProcessPartialBodyLimitAction;
       }
     | CONFIG_DIR_REQ_BODY_LIMIT_ACTION CONFIG_VALUE_REJECT
       {
-        driver.m_requestBodyLimitAction = modsecurity::RulesSet::BodyLimitAction::RejectBodyLimitAction;
+        driver.m_requestBodyLimitAction = modsecurity::Rules::BodyLimitAction::RejectBodyLimitAction;
       }
     | CONFIG_DIR_RES_BODY_LIMIT_ACTION CONFIG_VALUE_PROCESS_PARTIAL
       {
-        driver.m_responseBodyLimitAction = modsecurity::RulesSet::BodyLimitAction::ProcessPartialBodyLimitAction;
+        driver.m_responseBodyLimitAction = modsecurity::Rules::BodyLimitAction::ProcessPartialBodyLimitAction;
       }
     | CONFIG_DIR_RES_BODY_LIMIT_ACTION CONFIG_VALUE_REJECT
       {
-        driver.m_responseBodyLimitAction = modsecurity::RulesSet::BodyLimitAction::RejectBodyLimitAction;
+        driver.m_responseBodyLimitAction = modsecurity::Rules::BodyLimitAction::RejectBodyLimitAction;
       }
     | CONFIG_SEC_REMOTE_RULES_FAIL_ACTION CONFIG_VALUE_ABORT
       {
-        driver.m_remoteRulesActionOnFailed = RulesSet::OnFailedRemoteRulesAction::AbortOnFailedRemoteRulesAction;
+        driver.m_remoteRulesActionOnFailed = Rules::OnFailedRemoteRulesAction::AbortOnFailedRemoteRulesAction;
       }
     | CONFIG_SEC_REMOTE_RULES_FAIL_ACTION CONFIG_VALUE_WARN
       {
-        driver.m_remoteRulesActionOnFailed = RulesSet::OnFailedRemoteRulesAction::WarnOnFailedRemoteRulesAction;
+        driver.m_remoteRulesActionOnFailed = Rules::OnFailedRemoteRulesAction::WarnOnFailedRemoteRulesAction;
       }
     | CONFIG_DIR_PCRE_MATCH_LIMIT_RECURSION
 /* Parser error disabled to avoid breaking default installations with modsecurity.conf-recommended
@@ -1670,11 +1632,11 @@ expression:
       }
     | CONFIG_XML_EXTERNAL_ENTITY CONFIG_VALUE_OFF
       {
-        driver.m_secXMLExternalEntity = modsecurity::RulesSetProperties::FalseConfigBoolean;
+        driver.m_secXMLExternalEntity = modsecurity::RulesProperties::FalseConfigBoolean;
       }
     | CONFIG_XML_EXTERNAL_ENTITY CONFIG_VALUE_ON
       {
-        driver.m_secXMLExternalEntity = modsecurity::RulesSetProperties::TrueConfigBoolean;
+        driver.m_secXMLExternalEntity = modsecurity::RulesProperties::TrueConfigBoolean;
       }
     | CONGIG_DIR_SEC_TMP_DIR
       {
@@ -2062,18 +2024,6 @@ var:
     | VARIABLE_REQUEST_COOKIES_NAMES
       {
         VARIABLE_CONTAINER($$, new variables::RequestCookiesNames_NoDictElement());
-      }
-    | VARIABLE_MULTIPART_PART_HEADERS DICT_ELEMENT
-      {
-        VARIABLE_CONTAINER($$, new variables::MultipartPartHeaders_DictElement($2));
-      }
-    | VARIABLE_MULTIPART_PART_HEADERS DICT_ELEMENT_REGEXP
-      {
-        VARIABLE_CONTAINER($$, new variables::MultipartPartHeaders_DictElementRegexp($2));
-      }
-    | VARIABLE_MULTIPART_PART_HEADERS
-      {
-        VARIABLE_CONTAINER($$, new variables::MultipartPartHeaders_NoDictElement());
       }
     | VARIABLE_RULE DICT_ELEMENT
       {
@@ -2640,17 +2590,18 @@ act:
       }
     | ACTION_CTL_AUDIT_ENGINE CONFIG_VALUE_ON
       {
-        ACTION_CONTAINER($$, new actions::ctl::AuditEngine("ctl:auditengine=on"));
-        driver.m_auditLog->setCtlAuditEngineActive();
+        //ACTION_NOT_SUPPORTED("CtlAuditEngine", @0);
+        ACTION_CONTAINER($$, new actions::Action($1));
       }
     | ACTION_CTL_AUDIT_ENGINE CONFIG_VALUE_OFF
       {
-        ACTION_CONTAINER($$, new actions::ctl::AuditEngine("ctl:auditengine=off"));
+        //ACTION_NOT_SUPPORTED("CtlAuditEngine", @0);
+        ACTION_CONTAINER($$, new actions::Action($1));
       }
     | ACTION_CTL_AUDIT_ENGINE CONFIG_VALUE_RELEVANT_ONLY
       {
-        ACTION_CONTAINER($$, new actions::ctl::AuditEngine("ctl:auditengine=relevantonly"));
-        driver.m_auditLog->setCtlAuditEngineActive();
+        //ACTION_NOT_SUPPORTED("CtlAuditEngine", @0);
+        ACTION_CONTAINER($$, new actions::Action($1));
       }
     | ACTION_CTL_AUDIT_LOG_PARTS
       {

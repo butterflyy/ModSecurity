@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -21,7 +21,6 @@
 
 #include <fstream>
 
-#include "modsecurity/transaction.h"
 #include "modsecurity/rule_message.h"
 #include "src/audit_log/writer/https.h"
 #include "src/audit_log/writer/parallel.h"
@@ -55,15 +54,15 @@ AuditLog::AuditLog()
     : m_path1(""),
     m_path2(""),
     m_storage_dir(""),
-    m_format(NotSetAuditLogFormat),
-    m_parts(-1),
     m_filePermission(-1),
     m_directoryPermission(-1),
+    m_parts(-1),
     m_status(NotSetLogStatus),
     m_type(NotSetAuditLogType),
+    m_format(NotSetAuditLogFormat),
     m_relevant(""),
     m_writer(NULL),
-    m_ctlAuditEngineActive(false) { }
+    m_refereceCount(1) { }
 
 
 AuditLog::~AuditLog() {
@@ -86,7 +85,7 @@ bool AuditLog::setFileMode(int permission) {
 }
 
 
-int AuditLog::getFilePermission() const {
+int AuditLog::getFilePermission() {
     if (m_filePermission == -1) {
         return m_defaultFilePermission;
     }
@@ -94,7 +93,7 @@ int AuditLog::getFilePermission() const {
     return m_filePermission;
 }
 
-int AuditLog::getDirectoryPermission() const {
+int AuditLog::getDirectoryPermission() {
     if (m_directoryPermission == -1) {
         return m_defaultDirectoryPermission;
     }
@@ -193,7 +192,7 @@ bool AuditLog::setParts(const std::basic_string<char>& new_parts) {
 }
 
 
-int AuditLog::getParts() const {
+int AuditLog::getParts() {
     if (m_parts == -1) {
         return m_defaultParts;
     }
@@ -212,8 +211,7 @@ bool AuditLog::setType(AuditLogType audit_type) {
 bool AuditLog::init(std::string *error) {
     audit_log::writer::Writer *tmp_writer;
 
-    if ((m_status == OffAuditLogStatus || m_status == NotSetLogStatus)
-        && !m_ctlAuditEngineActive) {
+    if (m_status == OffAuditLogStatus || m_status == NotSetLogStatus) {
         if (m_writer) {
             delete m_writer;
             m_writer = NULL;
@@ -242,6 +240,21 @@ bool AuditLog::init(std::string *error) {
     if (tmp_writer->init(error) == false) {
         delete tmp_writer;
         return false;
+    }
+
+    /* Sanity check */
+    if (m_status == RelevantOnlyAuditLogStatus) {
+        if (m_relevant.empty()) {
+            /*
+             error->assign("m_relevant cannot be null while status is set to " \
+                "RelevantOnly");
+             return false;
+             */
+            // FIXME: this should be a warning. There is not point to
+            // have the logs on relevant only if nothing is relevant.
+            //
+            // Not returning an error to keep the compatibility with v2.
+        }
     }
 
     if (m_writer) {
@@ -278,13 +291,7 @@ bool AuditLog::saveIfRelevant(Transaction *transaction) {
 
 bool AuditLog::saveIfRelevant(Transaction *transaction, int parts) {
     bool saveAnyway = false;
-
-    AuditLogStatus transactionAuditLogStatus(m_status);
-    if (transaction->m_ctlAuditEngine != NotSetLogStatus) {
-        transactionAuditLogStatus = transaction->m_ctlAuditEngine;
-    }
-
-    if (transactionAuditLogStatus == OffAuditLogStatus || transactionAuditLogStatus == NotSetLogStatus) {
+    if (m_status == OffAuditLogStatus || m_status == NotSetLogStatus) {
         ms_dbg_a(transaction, 5, "Audit log engine was not set.");
         return true;
     }
@@ -296,7 +303,7 @@ bool AuditLog::saveIfRelevant(Transaction *transaction, int parts) {
         }
     }
 
-    if ((transactionAuditLogStatus == RelevantOnlyAuditLogStatus
+    if ((m_status == RelevantOnlyAuditLogStatus
         && this->isRelevant(transaction->m_httpCodeReturned) == false)
         && saveAnyway == false) {
         ms_dbg_a(transaction, 9, "Return code `" +
@@ -360,10 +367,6 @@ bool AuditLog::merge(AuditLog *from, std::string *error) {
 
     if (from->m_format != NotSetAuditLogFormat) {
         m_format = from->m_format;
-    }
-
-    if (from->m_ctlAuditEngineActive) {
-        m_ctlAuditEngineActive = from->m_ctlAuditEngineActive;
     }
 
     return init(error);

@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -28,8 +28,7 @@
 namespace modsecurity {
 
 
-AnchoredSetVariable::AnchoredSetVariable(Transaction *t,
-    const std::string &name)
+AnchoredSetVariable::AnchoredSetVariable(Transaction *t, std::string name)
     : m_transaction(t),
     m_name(name) {
         reserve(10);
@@ -44,7 +43,7 @@ AnchoredSetVariable::~AnchoredSetVariable() {
 void AnchoredSetVariable::unset() {
     for (const auto& x : *this) {
         VariableValue *var = x.second;
-        //delete var;
+        delete var;
     }
     clear();
 }

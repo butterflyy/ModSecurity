@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -19,8 +19,8 @@
 #include <string>
 #include <memory>
 
-#include "modsecurity/rules_set.h"
 #include "modsecurity/transaction.h"
+#include "modsecurity/rules.h"
 #include "modsecurity/rule.h"
 #include "src/utils/string.h"
 #include "src/variables/global.h"
@@ -40,7 +40,7 @@ bool SetVar::init(std::string *error) {
 }
 
 
-bool SetVar::evaluate(RuleWithActions *rule, Transaction *t) {
+bool SetVar::evaluate(Rule *rule, Transaction *t) {
     std::string targetValue;
     std::string resolvedPre;
 
@@ -49,6 +49,7 @@ bool SetVar::evaluate(RuleWithActions *rule, Transaction *t) {
     }
 
     std::string m_variableNameExpanded;
+    std::vector<const VariableValue *> l;
 
     auto *v = m_variable.get();
     variables::Tx_DynamicElement *tx = dynamic_cast<
@@ -112,8 +113,7 @@ bool SetVar::evaluate(RuleWithActions *rule, Transaction *t) {
 
         try {
             std::vector<const VariableValue *> l;
-            RuleWithOperator *rr = dynamic_cast<RuleWithOperator *>(rule);
-            m_variable->evaluate(t, rr, &l);
+            m_variable->evaluate(t, rule, &l);
             if (l.size() == 0) {
                 value = 0;
             } else {

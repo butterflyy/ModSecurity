@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -56,12 +56,8 @@ void GeoLookup::cleanUp() {
 
 bool GeoLookup::setDataBase(const std::string& filePath,
     std::string *err) {
-#ifdef WITH_MAXMIND
     std::string intMax;
-#endif
-#ifdef WITH_GEOIP
     std::string intGeo;
-#endif
 
 #ifdef WITH_MAXMIND
     int status = MMDB_open(filePath.c_str(), MMDB_MODE_MMAP, &mmdb);
@@ -74,7 +70,7 @@ bool GeoLookup::setDataBase(const std::string& filePath,
 
 #ifdef WITH_GEOIP
     if (m_version == NOT_LOADED) {
-        m_gi = GeoIP_open(filePath.c_str(), GEOIP_MEMORY_CACHE);
+        m_gi = GeoIP_open(filePath.c_str(), GEOIP_INDEX_CACHE);
         if (m_gi == NULL) {
             intGeo.append("GeoIP: Can't open: " + filePath + ".");
         } else {
@@ -89,22 +85,19 @@ bool GeoLookup::setDataBase(const std::string& filePath,
 #ifdef WITH_MAXMIND
         err->append(" libMaxMind");
 #endif
+
 #ifdef WITH_GEOIP
         err->append(" GeoIP");
 #endif
         err->append(".");
 
-#ifdef WITH_MAXMIND
-        if (!intMax.empty()) {
+        if (intMax.size() > 0) {
             err->append(" " + intMax);
+
         }
-#endif
-#ifdef WITH_GEOIP
-        if (!intGeo.empty()) {
+        if (intGeo.size() > 0) {
             err->append(" " + intGeo);
         }
-#endif
-
         return false;
     }
 
@@ -113,7 +106,7 @@ bool GeoLookup::setDataBase(const std::string& filePath,
 
 
 bool GeoLookup::lookup(const std::string& target, Transaction *trans,
-    std::function<bool(int, const std::string &)> debug) const {
+    std::function<bool(int, std::string)> debug) {
 
     if (m_version == NOT_LOADED) {
         if (debug) {
@@ -127,6 +120,7 @@ bool GeoLookup::lookup(const std::string& target, Transaction *trans,
     if (m_version == VERSION_MAXMIND) {
         int gai_error, mmdb_error;
         MMDB_lookup_result_s r;
+        int status;
 
         r = MMDB_lookup_string(&mmdb, target.c_str(), &gai_error, &mmdb_error);
 
@@ -151,7 +145,7 @@ bool GeoLookup::lookup(const std::string& target, Transaction *trans,
         } else {
             MMDB_entry_data_s entry_data;
 
-            int status = MMDB_get_value(&r.entry, &entry_data,
+            status = MMDB_get_value(&r.entry, &entry_data,
                 "country", "iso_code", NULL);
             if (status == MMDB_SUCCESS && entry_data.has_data) {
                 trans->m_variableGeo.set("COUNTRY_CODE",

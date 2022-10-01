@@ -37,7 +37,6 @@ afl_fuzzer_CPPFLAGS = \
 	-O0 \
 	-g \
 	-I$(top_builddir)/headers \
-	$(CURL_CFLAGS) \
 	$(GEOIP_CFLAGS) \
 	$(MAXMIND_CFLAGS) \
 	$(GLOBAL_CPPFLAGS) \

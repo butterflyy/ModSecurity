@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -26,7 +26,6 @@
 #include <utility>
 #include <vector>
 #include <memory>
-#include <stack>
 #endif
 
 #include <stdlib.h>
@@ -38,7 +37,7 @@
 #ifndef __cplusplus
 typedef struct ModSecurity_t ModSecurity;
 typedef struct Transaction_t Transaction;
-typedef struct Rules_t RulesSet;
+typedef struct Rules_t Rules;
 #endif
 
 #include "modsecurity/anchored_set_variable.h"
@@ -48,15 +47,12 @@ typedef struct Rules_t RulesSet;
 #include "modsecurity/variable_value.h"
 #include "modsecurity/collection/collection.h"
 #include "modsecurity/variable_origin.h"
-#include "modsecurity/anchored_set_variable_translation_proxy.h"
-#include "modsecurity/audit_log.h"
-
 
 #ifndef NO_LOGS
 #define ms_dbg(b, c) \
   do { \
       if (m_rules && m_rules->m_debugLog && m_rules->m_debugLog->m_debugLevel >= b) { \
-          m_rules->debug(b, *m_id.get(), m_uri, c); \
+          m_rules->debug(b, m_id, m_uri, c); \
       } \
   } while (0);
 #else
@@ -102,7 +98,7 @@ namespace modsecurity {
 
 class ModSecurity;
 class Transaction;
-class RulesSet;
+class Rules;
 class RuleMessage;
 namespace actions {
 class Action;
@@ -113,7 +109,6 @@ enum AllowType : int;
 namespace RequestBodyProcessor {
 class XML;
 class JSON;
-class MultipartPartTmpFile;
 }
 namespace operators {
 class Operator;
@@ -123,7 +118,10 @@ class Operator;
 class TransactionAnchoredVariables {
  public:
     explicit TransactionAnchoredVariables(Transaction *t)
-        : m_variableRequestHeadersNames(t, "REQUEST_HEADERS_NAMES"),
+        : m_variableArgsNames(t, "ARGS_NAMES"),
+        m_variableArgsGetNames(t, "ARGS_GET_NAMES"),
+        m_variableArgsPostNames(t, "ARGS_POST_NAMES"),
+        m_variableRequestHeadersNames(t, "REQUEST_HEADERS_NAMES"),
         m_variableResponseContentType(t, "RESPONSE_CONTENT_TYPE"),
         m_variableResponseHeadersNames(t, "RESPONSE_HEADERS_NAMES"),
         m_variableARGScombinedSize(t, "ARGS_COMBINED_SIZE"),
@@ -201,13 +199,12 @@ class TransactionAnchoredVariables {
         m_variableGeo(t, "GEO"),
         m_variableRequestCookiesNames(t, "REQUEST_COOKIES_NAMES"),
         m_variableFilesTmpNames(t, "FILES_TMPNAMES"),
-        m_variableMultipartPartHeaders(t, "MULTIPART_PART_HEADERS"),
-        m_variableOffset(0),
-        m_variableArgsNames("ARGS_NAMES", &m_variableArgs),
-        m_variableArgsGetNames("ARGS_GET_NAMES", &m_variableArgsGet),
-        m_variableArgsPostNames("ARGS_POST_NAMES", &m_variableArgsPost)
+        m_variableOffset(0)
         { }
 
+    AnchoredSetVariable m_variableArgsNames;
+    AnchoredSetVariable m_variableArgsGetNames;
+    AnchoredSetVariable m_variableArgsPostNames;
     AnchoredSetVariable m_variableRequestHeadersNames;
     AnchoredVariable m_variableResponseContentType;
     AnchoredSetVariable m_variableResponseHeadersNames;
@@ -283,56 +280,18 @@ class TransactionAnchoredVariables {
     AnchoredSetVariable m_variableGeo;
     AnchoredSetVariable m_variableRequestCookiesNames;
     AnchoredSetVariable m_variableFilesTmpNames;
-    AnchoredSetVariable m_variableMultipartPartHeaders;
 
     int m_variableOffset;
-
-    AnchoredSetVariableTranslationProxy m_variableArgsNames;
-    AnchoredSetVariableTranslationProxy m_variableArgsGetNames;
-    AnchoredSetVariableTranslationProxy m_variableArgsPostNames;
 };
 
-class TransactionSecMarkerManagement {
- public:
-    bool isInsideAMarker() const {
-        if (m_marker) {
-            return true;
-        }
-
-        return false;
-    }
-
-    std::shared_ptr<std::string> getCurrentMarker() const {
-        if (m_marker) {
-            return m_marker;
-        } else {
-            throw;
-        }
-    }
-
-    void removeMarker() {
-        m_marker.reset();
-    }
-
-    void addMarker(const std::shared_ptr<std::string> &name) {
-        m_marker = name;
-    }
-
- private:
-    std::shared_ptr<std::string> m_marker;
-};
 
 /** @ingroup ModSecurity_CPP_API */
-class Transaction : public TransactionAnchoredVariables, public TransactionSecMarkerManagement {
+class Transaction : public TransactionAnchoredVariables {
  public:
-    Transaction(ModSecurity *transaction, RulesSet *rules, void *logCbData);
-    Transaction(ModSecurity *transaction, RulesSet *rules, char *id,
+    Transaction(ModSecurity *transaction, Rules *rules, void *logCbData);
+    Transaction(ModSecurity *transaction, Rules *rules, char *id,
         void *logCbData);
     ~Transaction();
-
-    Transaction ( const Transaction & ) = delete;
-    bool operator ==(const Transaction &b) const { return false; };
-    Transaction &operator =(const Transaction &b) const = delete;
 
     /** TODO: Should be an structure that fits an IP address */
     int processConnection(const char *client, int cPort,
@@ -367,18 +326,6 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
       XMLRequestBody
     };
 
-    struct ContainerInfo{
-        std::string container_id;
-        std::string image_id;
-        std::string container_name;
-        unsigned long host_pid;
-        std::string state;
-        std::string image_name;
-        std::string full_container_name;
-        std::string ns_name;
-        std::string pod_name;
-    };
-
     int processRequestHeaders();
     int addRequestHeader(const std::string& key, const std::string& value);
     int addRequestHeader(const unsigned char *key, const unsigned char *value);
@@ -394,7 +341,6 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
     int addResponseHeader(const unsigned char *key, const unsigned char *value);
     int addResponseHeader(const unsigned char *key, size_t len_key,
         const unsigned char *value, size_t len_value);
-    int addContainer(const ContainerInfo& info);
 
     int processResponseBody();
     int appendResponseBody(const unsigned char *body, size_t size);
@@ -409,16 +355,16 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
     bool extractArguments(const std::string &orig, const std::string& buf,
         size_t offset);
 
-    const char *getResponseBody() const;
+    const char *getResponseBody();
     size_t getResponseBodyLength();
     size_t getRequestBodyLength();
 
 #ifndef NO_LOGS
-    void debug(int, const std::string&) const;
+    void debug(int, std::string) const;
 #endif
     void serverLog(std::shared_ptr<RuleMessage> rm);
 
-    int getRuleEngineState() const;
+    int getRuleEngineState();
 
     std::string toJSON(int parts);
     std::string toOldAuditLogFormat(int parts, const std::string &trailer);
@@ -437,11 +383,10 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
      */
     clock_t m_creationTimeStamp;
 
-    ContainerInfo m_containerInfo;
     /**
      * Holds the client IP address.
      */
-    std::shared_ptr<std::string> m_clientIpAddress;
+    std::string m_clientIpAddress;
 
     /**
      * Holds the HTTP version: 1.2, 2.0, 3.0 and so on....
@@ -451,7 +396,7 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
     /**
      * Holds the server IP Address
      */
-    std::shared_ptr<std::string> m_serverIpAddress;
+    std::string m_serverIpAddress;
 
     /**
      * Holds the raw URI that was requested.
@@ -461,7 +406,7 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
     /**
      * Holds the URI that was requests (without the query string).
      */
-    std::shared_ptr<std::string> m_uri_no_query_string_decoded;
+    std::string m_uri_no_query_string_decoded;
 
     /**
      * Holds the combined size of all arguments, later used to fill the
@@ -510,7 +455,7 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
     /**
      * Rules object utilized during this specific transaction.
      */
-    RulesSet *m_rules;
+    Rules *m_rules;
 
     /**
      *
@@ -547,12 +492,6 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
     std::list< std::pair<int, std::string> > m_auditLogModifier;
 
     /**
-     * This transaction's most recent action ctl:auditEngine
-     *
-     */
-    audit_log::AuditLog::AuditLogStatus m_ctlAuditEngine;
-
-    /**
      * This variable holds all the messages asked to be save by the utilization
      * of the actions: `log_data' and `msg'. These should be included on the
      * auditlogs.
@@ -573,7 +512,13 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
      * Contains the unique ID of the transaction. Use by the variable
 	 * `UNIQUE_ID'. This unique id is also saved as part of the AuditLog.
      */
-    std::shared_ptr<std::string> m_id;
+    std::string m_id;
+
+    /**
+     * Holds the SecMarker name that this transaction should wait to perform
+     * rules evaluation again.
+     */
+    std::string m_marker;
 
     /**
      * Holds the amount of rules that should be skipped. If bigger than 0 the
@@ -638,8 +583,6 @@ class Transaction : public TransactionAnchoredVariables, public TransactionSecMa
     std::string m_variableTimeWDay;
     std::string m_variableTimeYear;
 
-    std::vector<std::shared_ptr<RequestBodyProcessor::MultipartPartTmpFile>> m_multipartPartTmpFiles;
-
  private:
     /**
      * Pointer to the callback function that will be called to fill
@@ -657,11 +600,11 @@ extern "C" {
 
 /** @ingroup ModSecurity_C_API */
 Transaction *msc_new_transaction(ModSecurity *ms,
-    RulesSet *rules, void *logCbData);
+    Rules *rules, void *logCbData);
 
 /** @ingroup ModSecurity_C_API */
 Transaction *msc_new_transaction_with_id(ModSecurity *ms,
-    RulesSet *rules, char *id, void *logCbData);
+    Rules *rules, char *id, void *logCbData);
 
 /** @ingroup ModSecurity_C_API */
 int msc_process_connection(Transaction *transaction,

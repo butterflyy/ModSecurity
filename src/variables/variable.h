@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -21,9 +21,9 @@
 #include <vector>
 #include <deque>
 
-#include "modsecurity/rules_set.h"
 #include "modsecurity/transaction.h"
 #include "modsecurity/rule.h"
+#include "modsecurity/rules.h"
 #include "src/utils/string.h"
 #include "src/utils/regex.h"
 
@@ -45,11 +45,11 @@
 #define VAR_WITH_REGEX(n, N, e) \
 class n ## _DictElementRegexp : public VariableRegex { \
  public: \
-    explicit n ## _DictElementRegexp(const std::string &regex) \
+    explicit n ## _DictElementRegexp(std::string regex) \
         : VariableRegex(#N, regex) { } \
 \
     void evaluate(Transaction *transaction, \
-        RuleWithActions *rule, \
+        Rule *rule, \
         std::vector<const VariableValue *> *l) override { \
         transaction-> e .resolveRegularExpression(&m_r, l, \
             m_keyExclusion); \
@@ -60,11 +60,11 @@ class n ## _DictElementRegexp : public VariableRegex { \
 #define VAR_WITH_DICT_ELEMENT(n, N, e) \
 class n ## _DictElement : public VariableDictElement { \
  public: \
-    explicit n ## _DictElement(const std::string &dictElement) \
+    explicit n ## _DictElement(std::string dictElement) \
         : VariableDictElement(#N, dictElement) { } \
 \
     void evaluate(Transaction *transaction, \
-        RuleWithActions *rule, \
+        Rule *rule, \
         std::vector<const VariableValue *> *l) override { \
         transaction-> e .resolve(m_dictElement, l); \
     } \
@@ -78,7 +78,7 @@ class n ## _NoDictElement : public Variable { \
         : Variable(#N) { } \
 \
     void evaluate(Transaction *transaction, \
-        RuleWithActions *rule, \
+        Rule *rule, \
         std::vector<const VariableValue *> *l) override { \
         transaction-> e .resolve(l, m_keyExclusion); \
     } \
@@ -92,7 +92,7 @@ class n : public Variable { \
         : Variable(#N) { } \
     \
     void evaluate(Transaction *transaction, \
-        RuleWithActions *rule, \
+        Rule *rule, \
         std::vector<const VariableValue *> *l) override { \
         transaction-> e .evaluate(l); \
     } \
@@ -106,7 +106,6 @@ namespace variables {
 
 class KeyExclusion {
  public:
-    KeyExclusion() { }
     virtual bool match(const std::string &a) = 0;
     virtual ~KeyExclusion() { }
 };
@@ -115,10 +114,10 @@ class KeyExclusion {
 // FIXME: use pre built regex.
 class KeyExclusionRegex : public KeyExclusion {
  public:
-    explicit KeyExclusionRegex(const Utils::Regex &re)
-        : m_re(re.pattern, true) { }
-    explicit KeyExclusionRegex(const std::string &re)
-        : m_re(re, true) { }
+    explicit KeyExclusionRegex(Utils::Regex re)
+        : m_re(re.pattern) { }
+    explicit KeyExclusionRegex(std::string re)
+        : m_re(re) { }
 
     ~KeyExclusionRegex() override { }
 
@@ -132,7 +131,7 @@ class KeyExclusionRegex : public KeyExclusion {
 
 class KeyExclusionString : public KeyExclusion {
  public:
-    explicit KeyExclusionString(std::string &a)
+    KeyExclusionString(std::string &a)
         : m_key(utils::string::toupper(a)) { }
 
     ~KeyExclusionString() override { }
@@ -151,9 +150,6 @@ class KeyExclusionString : public KeyExclusion {
 
 class KeyExclusions : public std::deque<std::unique_ptr<KeyExclusion>> {
  public:
-    KeyExclusions() {
-    }
-
     bool toOmit(std::string a) {
         for (auto &z : *this) {
             if (z->match(a)) {
@@ -167,7 +163,6 @@ class KeyExclusions : public std::deque<std::unique_ptr<KeyExclusion>> {
 
 class VariableMonkeyResolution {
  public:
-    VariableMonkeyResolution () { }
     static inline bool comp(const std::string &a, const std::string &b) {
         return a.size() == b.size()
              && std::equal(a.begin(), a.end(), b.begin(),
@@ -544,13 +539,13 @@ class VariableMonkeyResolution {
 
 class Variable : public VariableMonkeyResolution {
  public:
-    explicit Variable(const std::string &name);
+    explicit Variable(std::string _name);
     explicit Variable(Variable *_name);
     virtual ~Variable() { }
 
 
     virtual void evaluate(Transaction *t,
-        RuleWithActions *rule,
+        Rule *rule,
         std::vector<const VariableValue *> *l) = 0;
 
 
@@ -567,7 +562,7 @@ class Variable : public VariableMonkeyResolution {
     void addsKeyExclusion(Variable *v);
 
 
-    bool operator==(const Variable& b) const {
+    bool operator==(const Variable& b) {
         return m_collectionName == b.m_collectionName &&
             m_name == b.m_name &&
             *m_fullName == *b.m_fullName;
@@ -585,7 +580,7 @@ class Variable : public VariableMonkeyResolution {
 
 class VariableDictElement : public Variable {
  public:
-    VariableDictElement(const std::string &name, const std::string &dict_element)
+    VariableDictElement(std::string name, std::string dict_element)
         :  m_dictElement(dict_element), Variable(name + ":" + dict_element) { }
 
     std::string m_dictElement;
@@ -594,14 +589,14 @@ class VariableDictElement : public Variable {
 
 class VariableRegex : public Variable {
  public:
-    VariableRegex(const std::string &name, const std::string &regex)
-        :  m_r(regex, true),
+    VariableRegex(std::string name, std::string regex)
+        :  m_r(regex),
         m_regex(regex),
         Variable(name + ":" + "regex(" + regex + ")") { }
 
-    Utils::Regex m_r;
     // FIXME: no need for that.
     std::string m_regex;
+    Utils::Regex m_r;
 };
 
 class Variables : public std::vector<Variable *> {
@@ -610,14 +605,14 @@ class Variables : public std::vector<Variable *> {
         return std::find_if(begin(), end(),
             [v](Variable *m) -> bool { return *v == *m; }) != end();
     };
-    bool contains(const VariableValue *v) {
+    bool contains(const std::string &v) {
         return std::find_if(begin(), end(),
             [v](Variable *m) -> bool {
                 VariableRegex *r = dynamic_cast<VariableRegex *>(m);
                 if (r) {
-                    return r->m_r.searchAll(v->getKey()).size() > 0;
+                    return r->m_r.searchAll(v).size() > 0;
                 }
-                return v->getKeyWithCollection() == *m->m_fullName.get();
+                return v == *m->m_fullName.get();
             }) != end();
     };
 };
@@ -626,12 +621,11 @@ class Variables : public std::vector<Variable *> {
 class VariableModificatorExclusion : public Variable {
  public:
     explicit VariableModificatorExclusion(std::unique_ptr<Variable> var)
-        : Variable(var.get()),
-        m_base(std::move(var)) { }
+        : m_base(std::move(var)), Variable(var.get()) { }
 
     void evaluate(Transaction *t,
-        RuleWithActions *rule,
-        std::vector<const VariableValue *> *l) override {
+        Rule *rule,
+        std::vector<const VariableValue *> *l) {
         m_base->evaluate(t, rule, l);
     }
 
@@ -648,8 +642,8 @@ class VariableModificatorCount : public Variable {
         }
 
     void evaluate(Transaction *t,
-        RuleWithActions *rule,
-        std::vector<const VariableValue *> *l) override {
+        Rule *rule,
+        std::vector<const VariableValue *> *l) {
         std::vector<const VariableValue *> reslIn;
         VariableValue *val = NULL;
         int count = 0;
@@ -675,8 +669,8 @@ class VariableModificatorCount : public Variable {
 };
 
 
-std::string operator+(const std::string &a, modsecurity::variables::Variable *v);
-std::string operator+(const std::string &a, modsecurity::variables::Variables *v);
+std::string operator+(std::string a, modsecurity::variables::Variable *v);
+std::string operator+(std::string a, modsecurity::variables::Variables *v);
 
 
 }  // namespace variables

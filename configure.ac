@@ -49,14 +49,13 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_PROG_CXX
 AM_PROG_AR
 AC_PROG_MAKE_SET
-PKG_PROG_PKG_CONFIG
 
 
 # Check if the compiler is c++11 compatible.
 # AX_CXX_COMPILE_STDCXX_11(,mandatory)
 
 # Check for libinjection
-if ! test -f "${srcdir}/others/libinjection/src/libinjection_html5.c"; then
+if ! test -f "others/libinjection/src/libinjection_html5.c"; then
 AC_MSG_ERROR([\
 
 
@@ -129,13 +128,6 @@ CHECK_LIBXML2
 CHECK_PCRE
 
 
-#
-# Check for pcre2
-#
-PROG_PCRE2
-AM_CONDITIONAL([PCRE2_CFLAGS], [test "PCRE2_CFLAGS" != ""])
-
-
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([string])
@@ -165,7 +157,7 @@ case $host in
     AC_DEFINE([MACOSX], [1], [Define if the operating system is Macintosh OSX])
     PLATFORM="MacOSX"
     ;;
-  *-*-linux* | *-*uclinux*)
+  *-*-linux*)
     echo "Checking platform... Identified as Linux"
     AC_DEFINE([LINUX], [1], [Define if the operating system is LINUX])
     PLATFORM="Linux"
@@ -195,11 +187,6 @@ case $host in
     AC_DEFINE([FREEBSD], [1], [Define if the operating system is FREEBSD])
     PLATFORM="kFreeBSD"
     ;;
-  *-*-dragonfly*)
-    echo "Checking platform... Identified as DragonFlyBSD, treating as linux"
-    AC_DEFINE([DRAGONFLY], [1], [Define if the operating system is DRAGONFLY])
-    PLATFORM="DragonFly"
-    ;;
   *-*-gnu*.*)
     echo "Checking platform... Identified as HURD, treating as linux"
     AC_DEFINE([LINUX], [1], [Define if the operating system is LINUX])
@@ -207,7 +194,7 @@ case $host in
     ;;
        *)
     echo "Unknown CANONICAL_HOST $host"
-    exit 1
+    exit
     ;;
 esac
 
@@ -561,23 +548,6 @@ if test "x$LUA_FOUND" = "x2"; then
     echo "   + LUA                                           ....disabled"
 fi
 
-
-## PCRE2
-if test "x$PCRE2_FOUND" = "x0"; then
-    echo "   + PCRE2                                          ....not found"
-fi
-if test "x$PCRE2_FOUND" = "x1"; then
-    echo -n "   + PCRE2                                          ....found "
-    if ! test "x$PCRE2_VERSION" = "x"; then
-        echo "v${PCRE2_VERSION}"
-    else
-        echo ""
-    fi
-    echo "      ${PCRE2_DISPLAY}"
-fi
-if test "x$PCRE2_FOUND" = "x2"; then
-    echo "   + PCRE2                                          ....disabled"
-fi
 
 echo " "
 echo " Other Options"

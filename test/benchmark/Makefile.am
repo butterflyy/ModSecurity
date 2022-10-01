@@ -6,6 +6,7 @@ benchmark_SOURCES = \
         benchmark.cc
 
 benchmark_LDADD = \
+	$(top_builddir)/src/.libs/libmodsecurity.a \
 	$(CURL_LDADD) \
 	$(GEOIP_LDADD) \
 	$(MAXMIND_LDADD) \
@@ -18,12 +19,7 @@ benchmark_LDADD = \
 	$(GLOBAL_LDADD)
 
 benchmark_LDFLAGS = \
-	-L$(top_builddir)/src/.libs/ \
-	$(GEOIP_LDFLAGS) \
-	-lmodsecurity \
-	-lpthread \
-	-lm \
-	-lstdc++ \
+	$(top_builddir)/src/.libs/libmodsecurity.a \
 	$(GEOIP_LDFLAGS) \
 	$(MAXMIND_LDFLAGS) \
 	$(YAJL_LDFLAGS) \

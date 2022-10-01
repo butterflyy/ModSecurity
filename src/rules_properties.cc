@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -13,9 +13,10 @@
  *
  */
 
+#include "modsecurity/rules_properties.h"
+
 #include <string>
 
-#include "modsecurity/rules_set_properties.h"
 #include "src/utils/string.h"
 #include "src/variables/variable.h"
 
@@ -23,7 +24,7 @@ namespace modsecurity {
 
 
 void ConfigUnicodeMap::loadConfig(std::string f, double configCodePage,
-    RulesSetProperties *driver, std::string *errg) {
+    RulesProperties *driver, std::string *errg) {
     char *buf = NULL;
     char *hmap = NULL;
     char *p = NULL;
@@ -34,6 +35,7 @@ void ConfigUnicodeMap::loadConfig(std::string f, double configCodePage,
     int length = 0;
     int Map = 0;
     int processing = 0;
+    unsigned int codepage = 0;
 
     driver->m_unicodeMapTable.m_set = true;
     driver->m_unicodeMapTable.m_unicodeCodePage = configCodePage;
@@ -86,7 +88,7 @@ void ConfigUnicodeMap::loadConfig(std::string f, double configCodePage,
     p = strtok_r(buf, CODEPAGE_SEPARATORS, &savedptr);
 
     while (p != NULL) {
-        unsigned int codepage = atol(p);
+        codepage = atol(p);
 
         if (codepage == configCodePage) {
             found = 1;

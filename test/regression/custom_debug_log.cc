@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -36,13 +36,13 @@ void CustomDebugLog::write(int level, const std::string &id,
     m_log << msgf << std::endl;
 }
 
-bool const CustomDebugLog::contains(const std::string& pattern) const {
+bool CustomDebugLog::contains(const std::string& pattern) {
     modsecurity::Utils::Regex re(pattern);
     std::string s = m_log.str();
     return modsecurity::Utils::regex_search(s, re);
 }
 
-std::string const CustomDebugLog::log_messages() const {
+std::string CustomDebugLog::log_messages() {
     return m_log.str();
 }
 

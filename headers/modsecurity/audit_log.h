@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -22,11 +22,12 @@
 #ifndef HEADERS_MODSECURITY_AUDIT_LOG_H_
 #define HEADERS_MODSECURITY_AUDIT_LOG_H_
 
+#include "modsecurity/transaction.h"
+
 
 #ifdef __cplusplus
 
 namespace modsecurity {
-class Transaction;
 namespace audit_log {
 namespace writer {
 class Writer;
@@ -36,9 +37,7 @@ class Writer;
 class AuditLog {
  public:
     AuditLog();
-    virtual ~AuditLog();
-
-    AuditLog(const AuditLog &a) = delete;
+    ~AuditLog();
 
     enum AuditLogType {
      NotSetAuditLogType,
@@ -159,26 +158,22 @@ class AuditLog {
     bool setStorageDir(const std::basic_string<char>& path);
     bool setFormat(AuditLogFormat fmt);
 
-    int getDirectoryPermission() const;
-    int getFilePermission() const;
-    int getParts() const;
+    int getDirectoryPermission();
+    int getFilePermission();
+    int getParts();
 
     bool setParts(const std::basic_string<char>& new_parts);
     bool setType(AuditLogType audit_type);
 
     bool init(std::string *error);
-    virtual bool close();
+    bool close();
 
     bool saveIfRelevant(Transaction *transaction);
     bool saveIfRelevant(Transaction *transaction, int parts);
     bool isRelevant(int status);
 
-    static int addParts(int parts, const std::string& new_parts);
-    static int removeParts(int parts, const std::string& new_parts);
-
-    void setCtlAuditEngineActive() {
-        m_ctlAuditEngineActive = true;
-    }
+    int addParts(int parts, const std::string& new_parts);
+    int removeParts(int parts, const std::string& new_parts);
 
     bool merge(AuditLog *from, std::string *error);
 
@@ -186,6 +181,18 @@ class AuditLog {
     std::string m_path2;
     std::string m_storage_dir;
 
+    void refCountIncrease() {
+        m_refereceCount++;
+    }
+
+    bool refCountDecreaseAndCheck() {
+        m_refereceCount--;
+        if (m_refereceCount == 0) {
+            delete this;
+            return true;
+        }
+        return false;
+    }
     AuditLogFormat m_format;
 
  protected:
@@ -206,7 +213,7 @@ class AuditLog {
     std::string m_relevant;
 
     audit_log::writer::Writer *m_writer;
-    bool m_ctlAuditEngineActive; // rules have at least one action On or RelevantOnly
+    int m_refereceCount;
 };
 
 

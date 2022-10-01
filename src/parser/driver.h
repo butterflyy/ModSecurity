@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -26,16 +26,14 @@
 #define SRC_PARSER_DRIVER_H_
 
 #include "modsecurity/modsecurity.h"
-#include "modsecurity/rules_set.h"
-#include "modsecurity/rules_set_properties.h"
+#include "modsecurity/rules.h"
+#include "modsecurity/rules_properties.h"
 #include "modsecurity/audit_log.h"
 #include "src/rule_script.h"
-#ifndef MS_CPPCHECK_DISABLED_FOR_PARSER
 #include "src/parser/seclang-parser.hh"
-#endif
 
-using modsecurity::RuleWithOperator;
-using modsecurity::RulesSet;
+using modsecurity::Rule;
+using modsecurity::Rules;
 
 
 # define YY_DECL \
@@ -61,15 +59,15 @@ typedef struct Driver_t Driver;
  *        driver class.
  *
  **/
-class Driver : public RulesSetProperties {
+class Driver : public RulesProperties {
  public:
     Driver();
     virtual ~Driver();
 
-    int addSecRule(std::unique_ptr<RuleWithActions> rule);
-    int addSecAction(std::unique_ptr<RuleWithActions> rule);
-    int addSecMarker(std::string marker, std::unique_ptr<std::string> fileName, int lineNumber);
-    int addSecRuleScript(std::unique_ptr<RuleScript> rule);
+    int addSecRule(Rule *rule);
+    int addSecAction(Rule *rule);
+    int addSecMarker(std::string marker);
+    int addSecRuleScript(RuleScript *rule);
 
     bool scan_begin();
     void scan_end();
@@ -89,9 +87,7 @@ class Driver : public RulesSetProperties {
     std::list<yy::location *> loc;
 
     std::string buffer;
-    RuleWithActions *m_lastRule;
-
-    RulesSetPhases m_rulesSetPhases;
+    Rule *lastRule;
 };
 
 

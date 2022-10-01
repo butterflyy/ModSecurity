@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -24,7 +24,6 @@
 #include "modsecurity/rule.h"
 #include "modsecurity/rule_message.h"
 
-#ifdef MSC_DOCUMENTATION
 /**
  * Description: Assigns a tag (category) to a rule or a chain.
  *
@@ -45,7 +44,7 @@
  *
  *
  */
-#endif
+
 
 namespace modsecurity {
 namespace actions {
@@ -57,7 +56,7 @@ std::string Tag::getName(Transaction *transaction) {
 }
 
 
-bool Tag::evaluate(RuleWithActions *rule, Transaction *transaction,
+bool Tag::evaluate(Rule *rule, Transaction *transaction,
     std::shared_ptr<RuleMessage> rm) {
     std::string tag = getName(transaction);
     ms_dbg_a(transaction, 9, "Rule tag: " + tag);

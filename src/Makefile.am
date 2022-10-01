@@ -35,7 +35,6 @@ MAINTAINERCLEANFILES = \
 
 
 pkginclude_HEADERS = \
-	../headers/modsecurity/anchored_set_variable_translation_proxy.h \
 	../headers/modsecurity/anchored_set_variable.h \
 	../headers/modsecurity/anchored_variable.h \
 	../headers/modsecurity/audit_log.h \
@@ -43,16 +42,10 @@ pkginclude_HEADERS = \
 	../headers/modsecurity/intervention.h \
 	../headers/modsecurity/modsecurity.h \
 	../headers/modsecurity/rule.h \
-	../headers/modsecurity/rule_marker.h \
-	../headers/modsecurity/rule_unconditional.h \
-	../headers/modsecurity/rule_with_actions.h \
-	../headers/modsecurity/rule_with_operator.h \
-	../headers/modsecurity/rules.h \
 	../headers/modsecurity/rule_message.h \
-	../headers/modsecurity/rules_set.h \
-	../headers/modsecurity/rules_set_phases.h \
-	../headers/modsecurity/rules_set_properties.h \
+	../headers/modsecurity/rules.h \
 	../headers/modsecurity/rules_exceptions.h \
+	../headers/modsecurity/rules_properties.h \
 	../headers/modsecurity/transaction.h \
 	../headers/modsecurity/variable_origin.h \
 	../headers/modsecurity/variable_value.h
@@ -118,7 +111,6 @@ ACTIONS = \
 	actions/capture.cc \
 	actions/chain.cc \
 	actions/ctl/audit_log_parts.cc \
-	actions/ctl/audit_engine.cc \
 	actions/ctl/rule_engine.cc \
 	actions/ctl/request_body_processor_json.cc \
 	actions/ctl/request_body_processor_xml.cc \
@@ -223,7 +215,6 @@ OPERATORS = \
 	operators/rbl.cc \
 	operators/rsub.cc \
 	operators/rx.cc \
-	operators/rx_global.cc \
 	operators/str_eq.cc \
 	operators/str_match.cc \
 	operators/validate_byte_range.cc \
@@ -282,20 +273,16 @@ libmodsecurity_la_SOURCES = \
 	audit_log/writer/serial.cc \
 	audit_log/writer/parallel.cc \
 	modsecurity.cc \
-	rules_set.cc \
-	rules_set_phases.cc \
-	rules_set_properties.cc \
+	rules.cc \
 	debug_log/debug_log.cc \
 	debug_log/debug_log_writer.cc \
 	run_time_string.cc \
 	rule.cc \
-	rule_unconditional.cc \
-	rule_with_actions.cc \
-	rule_with_operator.cc \
 	rule_message.cc \
 	rule_script.cc \
 	unique_id.cc \
 	rules_exceptions.cc \
+	rules_properties.cc \
 	${BODY_PROCESSORS} \
 	${ACTIONS} \
 	${ENGINES} \
@@ -316,7 +303,6 @@ libmodsecurity_la_CPPFLAGS = \
 	-fPIC \
 	-O3 \
 	-I../headers \
-	$(CURL_CFLAGS) \
 	$(GEOIP_CFLAGS) \
 	$(GLOBAL_CPPFLAGS) \
 	$(MODSEC_NO_LOGS) \
@@ -324,7 +310,6 @@ libmodsecurity_la_CPPFLAGS = \
 	$(YAJL_CFLAGS) \
 	$(LMDB_CFLAGS) \
 	$(PCRE_CFLAGS) \
-	$(PCRE2_CFLAGS) \
 	$(SSDEEP_CFLAGS) \
 	$(MAXMIND_CFLAGS) \
 	$(LUA_CFLAGS) \
@@ -340,7 +325,6 @@ libmodsecurity_la_LDFLAGS = \
 	$(LMDB_LDFLAGS) \
 	$(LUA_LDFLAGS) \
 	$(PCRE_LDFLAGS) \
-	$(PCRE2_LDFLAGS) \
 	$(SSDEEP_LDFLAGS) \
 	$(MAXMIND_LDFLAGS) \
 	$(YAJL_LDFLAGS) \
@@ -357,7 +341,6 @@ libmodsecurity_la_LIBADD = \
 	../others/libinjection.la \
 	../others/libmbedtls.la \
 	$(PCRE_LDADD) \
-	$(PCRE2_LDADD) \
 	$(MAXMIND_LDADD) \
 	$(SSDEEP_LDADD) \
 	$(YAJL_LDADD)

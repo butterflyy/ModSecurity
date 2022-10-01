@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -21,8 +21,8 @@
 #include <iostream>
 #include <string>
 
-#include "modsecurity/rules_set.h"
 #include "modsecurity/modsecurity.h"
+#include "modsecurity/rules.h"
 
 
 void print_help(const char *name) {
@@ -32,9 +32,9 @@ void print_help(const char *name) {
 
 
 int main(int argc, char **argv) {
-    modsecurity::RulesSet *rules;
+    modsecurity::Rules *rules;
     char **args = argv;
-    rules = new modsecurity::RulesSet();
+    rules = new modsecurity::Rules();
     int ret = 0;
 
     args++;
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
         }
 
         if (argFull.empty() == false) {
-            arg = strdup(argFull.c_str());
+            arg = argFull.c_str();
             argFull.clear();
         }
 

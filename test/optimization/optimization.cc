@@ -1,6 +1,6 @@
 /*
  * ModSecurity, http://www.modsecurity.org/
- * Copyright (c) 2015 - 2021 Trustwave Holdings, Inc. (http://www.trustwave.com/)
+ * Copyright (c) 2015 Trustwave Holdings, Inc. (http://www.trustwave.com/)
  *
  * You may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
@@ -20,16 +20,13 @@
 #include <string>
 #include <list>
 
-#include "modsecurity/rules_set_properties.h"
-#include "modsecurity/rules_set.h"
 #include "modsecurity/modsecurity.h"
+#include "modsecurity/rules.h"
 #include "src/utils/system.h"
 #include "src/parser/driver.h"
 #include "src/utils/https_client.h"
+#include "modsecurity/rules_properties.h"
 #include "modsecurity/transaction.h"
-#include "modsecurity/rule_unconditional.h"
-#include "modsecurity/rule_with_operator.h"
-
 
 void print_help() {
     std::cout << "Use ./optimization /path/to/files.something" << std::endl;
@@ -39,18 +36,18 @@ void print_help() {
 
 
 int main(int argc, char **argv) {
-    modsecurity::RulesSet *modsecRules = new modsecurity::RulesSet();
+    modsecurity::Rules *modsecRules = new modsecurity::Rules();
     std::list<std::string> files;
     int total = 0;
 
-    int p = 1;
-    while (p < argc) {
+    int i = 1;
+    while (i < argc) {
         std::list<std::string> tfiles = modsecurity::utils::expandEnv(
-            argv[p], 0);
+            argv[i], 0);
         for (const auto &file : tfiles) {
             files.insert(files.begin(), file);
         }
-        p++;
+        i++;
     }
 
 
@@ -70,49 +67,54 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
 
     int nphases = modsecurity::Phases::NUMBER_OF_PHASES;
-    for (int j = 0; j < nphases; j++) {
-        Rules *rules = modsecRules->m_rulesSetPhases[j];
-        if (rules->size() == 0) {
+    for (int i = 0; i < nphases; i++) {
+        std::vector<Rule *> rules = modsecRules->m_rules[i];
+        if (rules.size() == 0) {
             continue;
         }
-        std::cout << "Phase: " << std::to_string(j);
-        std::cout << " (" << std::to_string(rules->size());
+        std::cout << "Phase: " << std::to_string(i);
+        std::cout << " (" << std::to_string(rules.size());
         std::cout << " rules)" << std::endl;
 
         std::unordered_map<std::string, int> operators;
-
-        for (int i = 0; i < rules->size(); i++) {
-            auto z = rules->at(i);
+        std::unordered_map<std::string, int> variables;
+        std::unordered_map<std::string, int> op2var;
+        for (auto &z : rules) {
+            std::string key;
             if (z == NULL) {
                 continue;
             }
-
-            if (dynamic_cast<modsecurity::RuleUnconditional *>(z.get()) != nullptr) {
-                std::string op = "Unconditional";
+            if (z->m_op != NULL) {
+                std::string op = z->m_op->m_op;
                 if (operators.count(op) > 0) {
                     operators[op] = 1 + operators[op];
                 } else {
                     operators[op] = 1;
                 }
+                key = op;
             }
-
-            if (dynamic_cast<modsecurity::RuleWithOperator *>(z.get()) != nullptr) {
-                auto *rwo = dynamic_cast<modsecurity::RuleWithOperator *>(z.get());
-
-                std::string op = rwo->getOperatorName();
-                if (operators.count(op) > 0) {
-                    operators[op] = 1 + operators[op];
+            if (z->m_variables != NULL) {
+                std::string var = std::string("") + z->m_variables;
+                if (variables.count(var) > 0) {
+                    variables[var] = 1 + variables[var];
                 } else {
-                    operators[op] = 1;
+                    variables[var] = 1;
+                }
+                key = key + var;
+            }
+            if (z->m_variables != NULL && z->m_op != NULL) {
+                if (op2var.count(key) > 0) {
+                    op2var[key] = 1 + op2var[key];
+                } else {
+                    op2var[key] = 1;
                 }
             }
-
         }
-        if (operators.empty()) {
+
+        if (operators.empty() && variables.empty() && op2var.empty()) {
             std::cout << " ~ no SecRule found ~ " << std::endl;
             continue;
         }
-
         std::cout << " Operators" << std::endl;
         for (auto &z : operators) {
             auto &s = z.second;
@@ -121,7 +123,22 @@ int main(int argc, char **argv) {
             std::cout << std::endl;
         }
 
-        total += rules->size();
+        std::cout << " Variables" << std::endl;
+        for (auto &z : variables) {
+            auto &s = z.second;
+            std::cout << "   " << std::left << std::setw(20) << z.first;
+            std::cout << std::right << std::setw(4) << s;
+            std::cout << std::endl;
+        }
+        std::cout << " Operators applied to variables" << std::endl;
+        for (auto &z : op2var) {
+            auto &s = z.second;
+            std::cout << "   " << std::left << std::setw(40) << z.first;
+            std::cout << std::right << std::setw(4) << s;
+            std::cout << std::endl;
+        }
+
+        total += rules.size();
     }
     std::cout << std::endl;
 
