@@ -45,7 +45,7 @@ void AnchoredSetVariable::unset() {
         VariableValue *var = x.second;
         //delete var;
     }
-    clear();
+    //clear();
 }
 
 
