@@ -1715,7 +1715,7 @@ std::string Transaction::toJSON(int parts) {
     LOGFY_ADD("state", m_containerInfo.state.c_str());
     LOGFY_ADD("image_name", m_containerInfo.image_name.c_str());
     LOGFY_ADD("full_container_name", m_containerInfo.full_container_name.c_str());
-    LOGFY_ADD("ns_name", m_containerInfo.ns_name.c_str());
+    LOGFY_ADD("namespace", m_containerInfo.ns_name.c_str());
     LOGFY_ADD("pod_name", m_containerInfo.pod_name.c_str());
 
     /* end: container info */
