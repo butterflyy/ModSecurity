@@ -44,7 +44,7 @@ AnchoredSetVariable::~AnchoredSetVariable() {
 void AnchoredSetVariable::unset() {
     for (const auto& x : *this) {
         VariableValue *var = x.second;
-        //delete var;
+        delete var;
     }
     clear();
 }
