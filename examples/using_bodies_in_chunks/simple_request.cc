@@ -128,13 +128,13 @@ int main(int argc, char **argv) {
     modsecurity::ModSecurity *modsec;
     modsecurity::RulesSet *rules;
 
-    if (argc < 2) {
-        std::cout << "Use " << *argv << " test-case-file.conf";
-        std::cout << std::endl << std::endl;
-        return -1;
-    }
-    char *rule = *(++argv);
-    std::string rules_arg(rule);
+    // if (argc < 2) {
+    //     std::cout << "Use " << *argv << " test-case-file.conf";
+    //     std::cout << std::endl << std::endl;
+    //     return -1;
+    // }
+    // char *rule = *(++argv);
+    // std::string rules_arg(rule);
 
     /**
      * ModSecurity initial setup
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
      *
      */
     rules = new modsecurity::RulesSet();
-    if (rules->loadFromUri(rules_arg.c_str()) < 0) {
+    if (rules->loadFromUri("/root/workspace/waf_detection/coreruleset/main.conf") < 0) {
         std::cout << "Problems loading the rules..." << std::endl;
         std::cout << rules->m_parserError.str() << std::endl;
         return -1;

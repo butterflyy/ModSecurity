@@ -21,7 +21,7 @@
 #include "modsecurity/rules_set.h"
 
 
-char main_rule_uri[] = "basic_rules.conf";
+char main_rule_uri[] = "/root/workspace/waf_detection/coreruleset/main.conf";
 
 int main (int argc, char **argv)
 {
@@ -46,21 +46,21 @@ int main (int argc, char **argv)
     }
     msc_rules_dump(rules);
 
-    ret = msc_rules_add_remote(rules, "test",
-        "https://www.modsecurity.org/modsecurity-regression-test-secremoterules.txt",
-        &error);
-    if (ret < 0) {
-        fprintf(stderr, "Problems loading the rules --\n");
-        fprintf(stderr, "%s\n", error);
-        goto end;
-    }
-    msc_rules_dump(rules);
+    // ret = msc_rules_add_remote(rules, "test",
+    //     "https://www.modsecurity.org/modsecurity-regression-test-secremoterules.txt",
+    //     &error);
+    // if (ret < 0) {
+    //     fprintf(stderr, "Problems loading the rules --\n");
+    //     fprintf(stderr, "%s\n", error);
+    //     goto end;
+    // }
+    // msc_rules_dump(rules);
 
     transaction = msc_new_transaction(modsec, rules, NULL);
 
     msc_process_connection(transaction, "127.0.0.1", 12345, "127.0.0.1", 80);
     msc_process_uri(transaction,
-        "http://www.modsecurity.org/test?key1=value1&key2=value2&key3=value3",
+        "http://172.17.0.3:80/?<script></script>",
         "GET", "1.1");
     msc_process_request_headers(transaction);
     msc_process_request_body(transaction);
