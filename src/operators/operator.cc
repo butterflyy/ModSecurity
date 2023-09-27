@@ -110,20 +110,24 @@ std::string Operator::resolveMatchMessage(Transaction *t,
 
     if (ret.empty() == true) {
         if (m_couldContainsMacro == false) {
-            ret = "Matched \"Operator `" + m_op + "' with parameter `" +
-                utils::string::limitTo(200, m_param) +
-                "' against variable `" + key + "' (Value: `" +
-                utils::string::limitTo(100,
-                    utils::string::toHexIfNeeded(value)) + \
-                "' )";
+            // ret = "Matched \"Operator `" + m_op + "' with parameter `" +
+            //     utils::string::limitTo(200, m_param) +
+            //     "' against variable `" + key + "' (Value: `" +
+            //     utils::string::limitTo(100,
+            //         utils::string::toHexIfNeeded(value)) + \
+            //     "' )";
+
+            ret = key + "=" + utils::string::limitTo(100, utils::string::toHexIfNeeded(value));
         } else {
             std::string p(m_string->evaluate(t));
-            ret = "Matched \"Operator `" + m_op + "' with parameter `" +
-                utils::string::limitTo(200, p) +
-                "' against variable `" + key + "' (Value: `" +
-                utils::string::limitTo(100,
-                    utils::string::toHexIfNeeded(value)) +
-                "' )";
+            // ret = "Matched \"Operator `" + m_op + "' with parameter `" +
+            //     utils::string::limitTo(200, p) +
+            //     "' against variable `" + key + "' (Value: `" +
+            //     utils::string::limitTo(100,
+            //         utils::string::toHexIfNeeded(value)) +
+            //     "' )";
+
+            ret = key + "=" + utils::string::limitTo(100, utils::string::toHexIfNeeded(value));
         }
     }
 
