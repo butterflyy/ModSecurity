@@ -147,7 +147,7 @@ const std::string& ModSecurity::whoAmI() {
 #endif
 
     if (m_whoami.empty()) {
-        m_whoami = "[V1] ModSecurity v" MODSECURITY_VERSION " (" + platform + ")";
+        m_whoami = "[V1.1] ModSecurity v" MODSECURITY_VERSION " (" + platform + ")";
     }
 
     return m_whoami;
